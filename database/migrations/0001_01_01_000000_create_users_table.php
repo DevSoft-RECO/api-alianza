@@ -17,6 +17,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            
+            // AGREGADO: Columna para la ruta de la foto
+            // Usamos string. 2048 es una buena longitud para URLs/Paths largos.
+            // nullable() permite que el usuario se cree sin foto obligatoria.
+            $table->string('profile_photo_path', 2048)->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });
