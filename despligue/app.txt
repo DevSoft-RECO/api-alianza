@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+// 1. Asignamos todo el bloque a la variable $app (quitamos el 'return' del inicio)
+$app = Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware) {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        //
+    })->create();
+
+// 2. AGREGAMOS ESTA LÍNEA MÁGICA
+// Esto le dice a Laravel: "Tu carpeta pública no está aquí dentro, 
+// salte una carpeta atrás (../) busca 'public_html' y entra a 'backend'"
+$app->usePublicPath(dirname(__DIR__) . '/../public_html/backend');
+
+// 3. Finalmente retornamos la app configurada
+return $app;

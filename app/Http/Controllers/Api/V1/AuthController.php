@@ -13,7 +13,7 @@ class AuthController extends Controller
 {
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -21,11 +21,14 @@ class AuthController extends Controller
             ]);
         }
 
-        // LIMPIEZA: Borra tokens anteriores del MISMO dispositivo
-        $user->tokens()->where('name', $request->device_name)->delete();
+    // ESTRATEGIA INTELIGENTE:
+    // Borramos SOLO los tokens que tengan EL MISMO nombre del dispositivo actual.
+    // Ej: Si me logueo en "Windows PC - Chrome", borra la sesión anterior de "Windows PC - Chrome"
+    // pero deja viva la sesión de "iPhone - Safari".
+    $user->tokens()->where('name', $request->device_name)->delete();
 
-        $token = $user->createToken($request->device_name)->plainTextToken;
-
+    // Creamos el nuevo token
+    $token = $user->createToken($request->device_name)->plainTextToken;
         // ACTUALIZADO: Generar URL apuntando a public/uploads
         // Como guardamos solo el path relativo (ej: "perfil/foto.jpg"), concatenamos 'uploads/'
         $photoUrl = $user->profile_photo_path 

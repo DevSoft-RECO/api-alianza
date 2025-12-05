@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+
+  # --- LA CLAVE ES ESTA LÍNEA ---
+  # Le dice al servidor: "Si la dirección empieza por /backend/, NO se la des a Vue"
+  RewriteCond %{REQUEST_URI} !^/backend/
+
+  # Reglas estándar de Vue (Si no es archivo ni carpeta, mandar al index)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
