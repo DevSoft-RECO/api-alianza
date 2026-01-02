@@ -31,7 +31,7 @@ class UserController extends Controller
                 'email', 
                 Rule::unique('users')->ignore($user->id),
             ],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp,avif', 'max:2048'],
             'password' => ['nullable', 'confirmed', 'min:8'],
         ]);
 
