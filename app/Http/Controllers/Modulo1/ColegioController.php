@@ -10,7 +10,8 @@ class ColegioController extends Controller
 {
     public function index()
     {
-        return response()->json(Colegio::with('niveles')->get());
+        // Cargamos niveles y sus grados para que el frontend pueda construir selects en cascada
+        return response()->json(Colegio::with('niveles.grados')->get());
     }
 
     public function store(Request $request)
@@ -28,7 +29,7 @@ class ColegioController extends Controller
 
     public function show($id)
     {
-        $colegio = Colegio::with('niveles')->find($id);
+        $colegio = Colegio::with('niveles.grados')->find($id);
 
         if (!$colegio) {
             return response()->json(['message' => 'Colegio no encontrado'], 404);

@@ -9,6 +9,8 @@ use App\Http\Controllers\Modulo1\ColegioController;
 use App\Http\Controllers\Modulo1\NivelController;
 use App\Http\Controllers\Modulo1\GradoController;
 use App\Http\Controllers\Modulo1\CicloController;
+use App\Http\Controllers\Modulo2\EstudianteController;
+use App\Http\Controllers\Modulo2\InscripcionController;
 /*
 |--------------------------------------------------------------------------
 | API Routes V1
@@ -53,6 +55,10 @@ Route::prefix('alianza')->group(function () {
         Route::apiResource('grados', GradoController::class);
         Route::apiResource('ciclos', CicloController::class);
 
+
+        // --- Módulo 2: Estudiantes e Historial ---
+        Route::apiResource('estudiantes', EstudianteController::class);
+        Route::apiResource('inscripciones', InscripcionController::class);
     });
 
 });

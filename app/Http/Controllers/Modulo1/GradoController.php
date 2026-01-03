@@ -16,7 +16,7 @@ class GradoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nivel_id' => 'required|exists:niveles,id',
+            'nivel_id' => 'required|exists:niveles,id', // Validamos rango lógico
             'nombre' => 'required|string|max:255',
         ]);
 
