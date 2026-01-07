@@ -13,10 +13,10 @@ return new class extends Migration
             $table->dropColumn('cantidad_meses');
         });
 
-        // 2. Agregar a niveles
-        Schema::table('niveles', function (Blueprint $table) {
-            $table->integer('cantidad_colegiaturas')->nullable()->default(10)->after('descripcion');
-        });
+        // 2. Agregar a niveles (YA NO SE USA)
+        // Schema::table('niveles', function (Blueprint $table) {
+        //     $table->integer('cantidad_colegiaturas')->nullable()->default(10)->after('descripcion');
+        // });
     }
 
     public function down(): void

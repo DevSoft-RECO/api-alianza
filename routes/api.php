@@ -11,6 +11,8 @@ use App\Http\Controllers\Modulo1\GradoController;
 use App\Http\Controllers\Modulo1\CicloController;
 use App\Http\Controllers\Modulo2\EstudianteController;
 use App\Http\Controllers\Modulo2\InscripcionController;
+use App\Http\Controllers\Api\FinanzasController;
+use App\Http\Controllers\Api\CajaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes V1
@@ -59,6 +61,36 @@ Route::prefix('alianza')->group(function () {
         // --- Módulo 2: Estudiantes e Historial ---
         Route::apiResource('estudiantes', EstudianteController::class);
         Route::apiResource('inscripciones', InscripcionController::class);
+
+        // --- Módulo 3: Financiero (V3 FINAL) ---
+
+        // 1. Configuración (FinanzasController)
+        Route::prefix('finanzas')->group(function() {
+            Route::get('conceptos', [FinanzasController::class, 'indexConceptos']);
+            Route::post('conceptos', [FinanzasController::class, 'storeConcepto']);
+            Route::put('conceptos/{id}', [FinanzasController::class, 'updateConcepto']);
+            Route::delete('conceptos/{id}', [FinanzasController::class, 'destroyConcepto']);
+
+            Route::get('precios', [FinanzasController::class, 'indexPrecios']); // ?colegio_id=1
+            Route::post('precios', [FinanzasController::class, 'storePrecio']);
+            Route::put('precios/{id}', [FinanzasController::class, 'updatePrecio']);
+
+            Route::get('asignaciones', [FinanzasController::class, 'indexAsignaciones']); // ?grado_id=1
+            Route::post('asignaciones', [FinanzasController::class, 'storeAsignacion']);
+            Route::delete('asignaciones/{id}', [FinanzasController::class, 'destroyAsignacion']);
+        });
+
+        Route::get('/user', [AuthController::class, 'me']); // Alias for compatibility
+
+        // ... existing routes ...
+
+        // 2. Caja y Pagos (CajaController)
+        Route::prefix('caja')->group(function() {
+            Route::get('pagos', [CajaController::class, 'index']); // Historial
+            Route::get('pagos/{id}', [CajaController::class, 'show']); // <--- Detalle de Pago (Recibo)
+            Route::get('estado-cuenta/{estudiante_id}', [CajaController::class, 'estadoCuenta']);
+            Route::post('pagar', [CajaController::class, 'procesarPago']);
+        });
     });
 
 });

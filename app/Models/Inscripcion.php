@@ -39,4 +39,10 @@ class Inscripcion extends Model
     {
         return $this->belongsTo(Grado::class);
     }
+
+    // Relación para Módulo 3 V3 (Final)
+    public function cargos()
+    {
+        return $this->hasMany(\App\Models\Cargo::class);
+    }
 }

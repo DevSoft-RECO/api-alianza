@@ -19,7 +19,6 @@ class NivelController extends Controller
             'colegio_id' => 'required|exists:colegios,id',
             'nombre' => 'required|string|max:255',
             'descripcion' => 'required|string|max:255',
-            'cantidad_colegiaturas' => 'nullable|integer|min:1|max:12',
         ]);
 
         $nivel = Nivel::create($validated);
@@ -50,7 +49,6 @@ class NivelController extends Controller
             'colegio_id' => 'sometimes|required|exists:colegios,id',
             'nombre' => 'sometimes|required|string|max:255',
             'descripcion' => 'sometimes|required|string|max:255',
-            'cantidad_colegiaturas' => 'sometimes|nullable|integer|min:1|max:12',
         ]);
 
         $nivel->update($validated);

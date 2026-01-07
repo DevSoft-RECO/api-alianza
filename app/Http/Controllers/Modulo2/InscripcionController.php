@@ -85,6 +85,11 @@ class InscripcionController extends Controller
 
         $inscripcion = Inscripcion::create($validated);
 
+        // --- Módulo Financiero V3: Generar Cargos Automáticamente ---
+        $finanzas = new \App\Services\FinanzasService();
+        $finanzas->generarCargosPorInscripcion($inscripcion);
+        // ------------------------------------------------------------
+
         return response()->json($inscripcion, 201);
     }
 
