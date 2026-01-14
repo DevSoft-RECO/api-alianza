@@ -4,33 +4,49 @@ namespace App\Http\Controllers\Modulo2;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inscripcion;
-use App\Models\Grado; // Importamos Grado para la validación
+use App\Models\Grado;
+use App\Models\Nivel;
+use App\Models\Colegio;
+use App\Models\Ciclo;
 use Illuminate\Http\Request;
 
 class InscripcionController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Inscripcion::with(['estudiante', 'ciclo', 'colegio', 'grado']);
+public function index(Request $request)
+{
+    $query = Inscripcion::with([
+        'estudiante:id,apellidos,nombres,codigo_estudiante',
+        'grado:id,nombre,nivel_id',
+        'grado.nivel:id,nombre',
+        'colegio:id,nombre',
+        'ciclo:id,anio'
+    ]);
 
-        if ($request->filled('estudiante_id')) {
-            $query->where('estudiante_id', $request->input('estudiante_id'));
-        }
-        if ($request->filled('ciclo_id')) {
-            $query->where('ciclo_id', $request->input('ciclo_id'));
-        }
-        if ($request->filled('colegio_id')) {
-            $query->where('colegio_id', $request->input('colegio_id'));
-        }
-        if ($request->filled('grado_id')) {
-            $query->where('grado_id', $request->input('grado_id'));
-        }
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->input('estado'));
-        }
-
-        return response()->json($query->paginate(20));
+    if ($request->filled('ciclo_id')) {
+        $query->where('ciclo_id', $request->ciclo_id);
     }
+
+    if ($request->filled('colegio_id')) {
+        $query->where('colegio_id', $request->colegio_id);
+    }
+
+    if ($request->filled('nivel_id')) {
+        $query->whereHas('grado', function ($q) use ($request) {
+            $q->where('nivel_id', $request->nivel_id);
+        });
+    }
+
+    if ($request->filled('grado_id')) {
+        $query->where('grado_id', $request->grado_id); // ✅ ahora sí
+    }
+
+    if ($request->filled('estado')) {
+        $query->where('estado', $request->estado);
+    }
+
+    return $query->paginate(10);
+}
+
 
     public function store(Request $request)
     {
