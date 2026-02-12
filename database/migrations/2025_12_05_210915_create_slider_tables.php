@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             // Campos nullable para evitar errores si no se envían
             $table->string('main_title')->nullable()->default('Nuestras Carreras');
-            $table->text('subtitle')->nullable()->default('Descubre tu futuro con nosotros');
+            $table->string('subtitle')->nullable()->default('Descubre tu futuro con nosotros');
             $table->timestamps();
         });
 
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->id();
             $table->string('image_path')->nullable(); // La ruta de la imagen
             // Enum nullable por si en el futuro hay imágenes sin categoría
-            $table->enum('category', ['EPAE', 'CCI', 'LEDNA'])->nullable(); 
+            $table->enum('category', ['EPAE', 'CCI', 'LEDNA'])->nullable();
             $table->timestamps();
         });
     }

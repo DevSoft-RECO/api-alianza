@@ -13,6 +13,7 @@ use App\Http\Controllers\Modulo2\EstudianteController;
 use App\Http\Controllers\Modulo2\InscripcionController;
 use App\Http\Controllers\Api\FinanzasController;
 use App\Http\Controllers\Api\CajaController;
+use App\Http\Controllers\Frontend\WebsiteSettingsController;
 /*
 |--------------------------------------------------------------------------
 | API Routes V1
@@ -26,6 +27,7 @@ Route::prefix('alianza')->group(function () {
     // --- Rutas Públicas (No requieren Token) ---
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/slider', [SliderController::class, 'index']);
+    Route::get('/website/settings', [WebsiteSettingsController::class, 'index']);
 
     // --- Rutas Protegidas (Requieren Token Bearer) ---
     Route::middleware('auth:sanctum')->group(function () {
@@ -40,6 +42,10 @@ Route::prefix('alianza')->group(function () {
         Route::post('/slider/settings', [SliderController::class, 'storeSetting']);
         Route::put('/slider/settings/{id}', [SliderController::class, 'updateSetting']);
         Route::delete('/slider/settings/{id}', [SliderController::class, 'destroySetting']);
+
+        // --- Configuraciones del Sitio (Footer, etc.) ---
+        Route::put('/website/settings', [App\Http\Controllers\Frontend\WebsiteSettingsController::class, 'update']);
+
 
         // Subir imagen
         Route::post('/slider/images', [SliderController::class, 'storeImage']);
