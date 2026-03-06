@@ -31,6 +31,7 @@ Route::prefix('alianza')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/slider', [SliderController::class, 'index']);
     Route::get('/catalogo', [CatalogoController::class, 'indexPublic']);
+    Route::get('/nosotros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'indexPublic']);
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index']);
 
     // --- Rutas Protegidas (Requieren Token Bearer) ---
@@ -59,6 +60,14 @@ Route::prefix('alianza')->group(function () {
         Route::put('/admin/catalogo/carrera/{id}', [CatalogoController::class, 'updateCarrera']);
         Route::delete('/admin/catalogo/carrera/{id}', [CatalogoController::class, 'destroyCarrera']);
 
+        // --- Nosotros / Contactanos Web Admin ---
+        Route::get('/admin/nosotros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'getAdminData']);
+        Route::post('/admin/nosotros/encabezado', [\App\Http\Controllers\Frontend\NosotrosController::class, 'saveEncabezado']);
+
+        // Unified CRUD for Colegios History and Fundadores
+        Route::post('/admin/nosotros/registros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'storeRegistro']);
+        Route::put('/admin/nosotros/registros/{id}', [\App\Http\Controllers\Frontend\NosotrosController::class, 'updateRegistro']); // Spoofed PUT to handle formdata files
+        Route::delete('/admin/nosotros/registros/{id}', [\App\Http\Controllers\Frontend\NosotrosController::class, 'destroyRegistro']);
 
         // Subir imagen
         Route::post('/slider/images', [SliderController::class, 'storeImage']);
