@@ -9,10 +9,15 @@ class Colegio extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nombre', 'director', 'direccion'];
+    protected $fillable = ['nombre', 'director', 'direccion', 'label', 'descripcion_web', 'theme'];
 
     public function niveles()
     {
         return $this->hasMany(Nivel::class);
+    }
+
+    public function catalogoCarreras()
+    {
+        return $this->hasMany(CatalogoCarrera::class);
     }
 }

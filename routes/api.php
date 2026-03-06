@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SliderController;
+use App\Http\Controllers\Frontend\CatalogoController;
 use App\Http\Controllers\Modulo1\ColegioController;
 use App\Http\Controllers\Modulo1\NivelController;
 use App\Http\Controllers\Modulo1\GradoController;
@@ -14,6 +15,8 @@ use App\Http\Controllers\Modulo2\InscripcionController;
 use App\Http\Controllers\Api\FinanzasController;
 use App\Http\Controllers\Api\CajaController;
 use App\Http\Controllers\Frontend\WebsiteSettingsController;
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes V1
@@ -27,6 +30,7 @@ Route::prefix('alianza')->group(function () {
     // --- Rutas Públicas (No requieren Token) ---
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/slider', [SliderController::class, 'index']);
+    Route::get('/catalogo', [CatalogoController::class, 'indexPublic']);
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index']);
 
     // --- Rutas Protegidas (Requieren Token Bearer) ---
@@ -45,6 +49,15 @@ Route::prefix('alianza')->group(function () {
 
         // --- Configuraciones del Sitio (Footer, etc.) ---
         Route::put('/website/settings', [App\Http\Controllers\Frontend\WebsiteSettingsController::class, 'update']);
+
+        // --- Catalogo Web Admin ---
+        Route::get('/admin/catalogo', [CatalogoController::class, 'getAdminData']);
+        Route::post('/admin/catalogo/encabezado', [CatalogoController::class, 'saveEncabezado']);
+        Route::put('/admin/catalogo/colegio/{id}', [CatalogoController::class, 'updateColegio']);
+
+        Route::post('/admin/catalogo/carrera', [CatalogoController::class, 'storeCarrera']);
+        Route::put('/admin/catalogo/carrera/{id}', [CatalogoController::class, 'updateCarrera']);
+        Route::delete('/admin/catalogo/carrera/{id}', [CatalogoController::class, 'destroyCarrera']);
 
 
         // Subir imagen
