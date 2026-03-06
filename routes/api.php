@@ -15,6 +15,7 @@ use App\Http\Controllers\Modulo2\InscripcionController;
 use App\Http\Controllers\Api\FinanzasController;
 use App\Http\Controllers\Api\CajaController;
 use App\Http\Controllers\Frontend\WebsiteSettingsController;
+use App\Http\Controllers\Frontend\GaleriaController;
 
 
 /*
@@ -33,6 +34,7 @@ Route::prefix('alianza')->group(function () {
     Route::get('/catalogo', [CatalogoController::class, 'indexPublic']);
     Route::get('/nosotros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'indexPublic']);
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index']);
+    Route::get('/galeria', [GaleriaController::class, 'index']);
 
     // --- Rutas Protegidas (Requieren Token Bearer) ---
     Route::middleware('auth:sanctum')->group(function () {
@@ -68,6 +70,12 @@ Route::prefix('alianza')->group(function () {
         Route::post('/admin/nosotros/registros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'storeRegistro']);
         Route::put('/admin/nosotros/registros/{id}', [\App\Http\Controllers\Frontend\NosotrosController::class, 'updateRegistro']); // Spoofed PUT to handle formdata files
         Route::delete('/admin/nosotros/registros/{id}', [\App\Http\Controllers\Frontend\NosotrosController::class, 'destroyRegistro']);
+
+        // --- Galería Web Admin ---
+        Route::get('/admin/galeria', [GaleriaController::class, 'index']);
+        Route::post('/admin/galeria', [GaleriaController::class, 'store']);
+        Route::put('/admin/galeria/{id}', [GaleriaController::class, 'update']);
+        Route::delete('/admin/galeria/{id}', [GaleriaController::class, 'destroy']);
 
         // Subir imagen
         Route::post('/slider/images', [SliderController::class, 'storeImage']);
