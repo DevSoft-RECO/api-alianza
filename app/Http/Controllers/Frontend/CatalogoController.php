@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Encabezado;
 use App\Models\Colegio;
 
@@ -92,6 +93,8 @@ class CatalogoController extends Controller
             ]
         );
 
+        Cache::forget('public_catalogo');
+
         return response()->json(['message' => 'Encabezado guardado correctamente', 'encabezado' => $encabezado]);
     }
 
@@ -114,6 +117,8 @@ class CatalogoController extends Controller
             'theme' => $request->theme
         ]);
 
+        Cache::forget('public_catalogo');
+
         return response()->json(['message' => 'Información visual del colegio actualizada', 'colegio' => $colegio]);
     }
 
@@ -132,6 +137,8 @@ class CatalogoController extends Controller
         ]);
 
         $carrera = \App\Models\CatalogoCarrera::create($request->all());
+
+        Cache::forget('public_catalogo');
 
         return response()->json(['message' => 'Carrera creada exitosamente.', 'carrera' => $carrera], 201);
     }
@@ -154,6 +161,8 @@ class CatalogoController extends Controller
 
         $carrera->update($request->all());
 
+        Cache::forget('public_catalogo');
+
         return response()->json(['message' => 'Carrera actualizada exitosamente.', 'carrera' => $carrera]);
     }
 
@@ -164,6 +173,8 @@ class CatalogoController extends Controller
     {
         $carrera = \App\Models\CatalogoCarrera::findOrFail($id);
         $carrera->delete();
+
+        Cache::forget('public_catalogo');
 
         return response()->json(['message' => 'Carrera eliminada exitosamente.']);
     }

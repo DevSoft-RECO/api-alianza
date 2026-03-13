@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Encabezado;
 use App\Models\SobreNosotros;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 
 class NosotrosController extends Controller
 {
@@ -73,6 +74,8 @@ class NosotrosController extends Controller
             ]
         );
 
+        Cache::forget('public_nosotros');
+
         return response()->json(['message' => 'Encabezado guardado correctamente', 'encabezado' => $encabezado]);
     }
 
@@ -106,6 +109,8 @@ class NosotrosController extends Controller
         }
 
         $registro = SobreNosotros::create($data);
+
+        Cache::forget('public_nosotros');
 
         return response()->json(['message' => 'Registro creado exitosamente.', 'registro' => $registro], 201);
     }
@@ -147,6 +152,8 @@ class NosotrosController extends Controller
 
         $registro->update($data);
 
+        Cache::forget('public_nosotros');
+
         return response()->json(['message' => 'Registro actualizado exitosamente.', 'registro' => $registro]);
     }
 
@@ -162,6 +169,8 @@ class NosotrosController extends Controller
         }
 
         $registro->delete();
+
+        Cache::forget('public_nosotros');
 
         return response()->json(['message' => 'Registro eliminado exitosamente.']);
     }
