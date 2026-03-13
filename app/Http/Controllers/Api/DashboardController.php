@@ -14,83 +14,109 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $now = Carbon::now();
         \App::setLocale('es');
+
+        // Filtros (Opcionales)
+        $selectedMonth = $request->query('month');
+        $selectedYear = $request->query('year', $now->year);
+
+        // Validar tipo
+        if ($selectedMonth && is_numeric($selectedMonth)) {
+            $selectedMonth = (int)$selectedMonth;
+        } else {
+            $selectedMonth = null;
+        }
 
         // 1. KPIs Principales
         $cicloActivo = Ciclo::where('activo', true)->first();
         $totalEstudiantes = Estudiante::count();
         $inscripcionesActivas = Inscripcion::where('ciclo_id', $cicloActivo->id ?? 0)->count();
 
-        // 2. Ingresos: Mes Actual y Mes Pasado (Basado en Pago y fecha_pago)
-        $lastMonth = $now->copy()->subMonth();
+        // 2. Ingresos: Mes Seleccionado (o Actual por defecto)
+        $monthForKpi = $selectedMonth ?: $now->month;
+        $yearForKpi = $selectedYear ?: $now->year;
         
-        $ingresosMesActual = Pago::whereMonth('fecha_pago', $now->month)
-            ->whereYear('fecha_pago', $now->year)
+        $ingresosMesActual = Pago::whereMonth('fecha_pago', $monthForKpi)
+            ->whereYear('fecha_pago', $yearForKpi)
             ->sum('total');
 
-        $ingresosMesPasado = Pago::whereMonth('fecha_pago', $lastMonth->month)
-            ->whereYear('fecha_pago', $lastMonth->year)
-            ->sum('total');
+        $nombreMesActual = Carbon::now()->setMonth($monthForKpi)->translatedFormat('F');
 
-        $nombreMesActual = $now->translatedFormat('F');
-        $nombreMesPasado = $lastMonth->translatedFormat('F');
+        $montoPendiente = Cargo::join('inscripciones', 'cargos.inscripcion_id', '=', 'inscripciones.id')
+            ->where('inscripciones.ciclo_id', $cicloActivo->id ?? 0)
+            ->where('cargos.estado', 'pendiente')
+            ->sum('cargos.monto_base');
 
-        $montoPendiente = Cargo::where('estado', 'pendiente')->sum('monto_base');
-
-        // 2. Gráfico: Inscripciones por Colegio
+        // 3. Gráfico: Inscripciones por Colegio (Solo ciclo activo)
         $inscripcionesPorColegio = Inscripcion::join('colegios', 'inscripciones.colegio_id', '=', 'colegios.id')
+            ->where('inscripciones.ciclo_id', $cicloActivo->id ?? 0)
             ->select('colegios.nombre', DB::raw('count(*) as total'))
             ->groupBy('colegios.nombre')
             ->get();
 
-        // 3. Gráfico: Ingresos por Forma de Pago (Este mes)
-        $ingresosPorMetodo = Pago::select('forma_pago', DB::raw('sum(total) as total'))
-            ->whereMonth('fecha_pago', $now->month)
-            ->whereYear('fecha_pago', $now->year)
-            ->groupBy('forma_pago')
-            ->get();
-
-        // 4. Nueva Métrica: Recaudación por Colegio (Panorama General)
-        $ingresosPorColegio = Pago::join('estudiantes', 'pagos.estudiante_id', '=', 'estudiantes.id')
+        // 4. Métrica: Recaudación por Colegio (Panorama General o Filtrado)
+        $queryRecaudacion = Pago::join('estudiantes', 'pagos.estudiante_id', '=', 'estudiantes.id')
             ->join('inscripciones', 'estudiantes.id', '=', 'inscripciones.estudiante_id')
             ->join('colegios', 'inscripciones.colegio_id', '=', 'colegios.id')
+            ->where('inscripciones.ciclo_id', $cicloActivo->id ?? 0) // Guardián de ciclo
             ->select('colegios.nombre', DB::raw('sum(pagos.total) as total'))
-            ->groupBy('colegios.nombre')
-            ->get();
+            ->groupBy('colegios.nombre');
 
-        // 5. Actividad Reciente: Últimas Inscripciones
-        $ultimasInscripciones = Inscripcion::with(['estudiante:id,nombres,apellidos', 'grado:id,nombre', 'colegio:id,nombre'])
-            ->latest()
-            ->take(5)
-            ->get();
+        if ($selectedMonth) {
+            $queryRecaudacion->whereMonth('pagos.fecha_pago', $selectedMonth)
+                            ->whereYear('pagos.fecha_pago', $selectedYear);
+        }
 
-        // 6. Actividad Reciente: Últimos Pagos
+        $recaudacionPorColegio = $queryRecaudacion->get();
+
+        // 5. Actividad Reciente: Últimos Pagos
         $ultimosPagos = Pago::with(['estudiante:id,nombres,apellidos'])
             ->latest()
-            ->take(5)
+            ->take(8)
             ->get();
+
+        // 6. Métricas Globales (Basadas en Ciclo Activo)
+        $totalRecaudadoGlobal = Pago::join('estudiantes', 'pagos.estudiante_id', '=', 'estudiantes.id')
+            ->join('inscripciones', 'estudiantes.id', '=', 'inscripciones.estudiante_id')
+            ->where('inscripciones.ciclo_id', $cicloActivo->id ?? 0)
+            ->sum('pagos.total');
+
+        $proyeccionIngresos = Cargo::join('inscripciones', 'cargos.inscripcion_id', '=', 'inscripciones.id')
+            ->where('inscripciones.ciclo_id', $cicloActivo->id ?? 0)
+            ->sum('cargos.monto_base');
+
+        // Listado de meses para el filtro
+        $meses = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $meses[] = [
+                'id' => $i,
+                'nombre' => ucfirst(Carbon::now()->setDay(1)->setMonth($i)->translatedFormat('F'))
+            ];
+        }
 
         return response()->json([
             'kpis' => [
-                'total_estudiantes' => $totalEstudiantes,
-                'inscripciones_activas' => $inscripcionesActivas,
                 'ingresos_mes_actual' => (float)$ingresosMesActual,
-                'ingresos_mes_pasado' => (float)$ingresosMesPasado,
+                'total_recaudado' => (float)$totalRecaudadoGlobal,
+                'proyeccion_ingresos' => (float)$proyeccionIngresos,
                 'nombre_mes_actual' => ucfirst($nombreMesActual),
-                'nombre_mes_pasado' => ucfirst($nombreMesPasado),
                 'monto_pendiente' => (float)$montoPendiente,
                 'ciclo_anio' => $cicloActivo->anio ?? 'N/A',
             ],
             'stats' => [
                 'por_colegio' => $inscripcionesPorColegio,
-                'por_metodo' => $ingresosPorMetodo,
-                'recaudacion_por_colegio' => $ingresosPorColegio,
+                'recaudacion_por_colegio' => $recaudacionPorColegio,
+                'meses' => $meses,
+                'filtro_actual' => [
+                    'month' => $selectedMonth,
+                    'year' => $selectedYear,
+                    'label' => $selectedMonth ? ucfirst(Carbon::now()->setDay(1)->setMonth($selectedMonth)->translatedFormat('F')) : 'Total General'
+                ]
             ],
             'recents' => [
-                'inscripciones' => $ultimasInscripciones,
                 'pagos' => $ultimosPagos
             ]
         ]);
