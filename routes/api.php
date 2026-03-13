@@ -14,6 +14,7 @@ use App\Http\Controllers\Modulo2\EstudianteController;
 use App\Http\Controllers\Modulo2\InscripcionController;
 use App\Http\Controllers\Api\FinanzasController;
 use App\Http\Controllers\Api\CajaController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Frontend\WebsiteSettingsController;
 use App\Http\Controllers\Frontend\GaleriaController;
 use App\Http\Controllers\Frontend\PublicDataController;
@@ -42,8 +43,11 @@ Route::prefix('alianza')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [AuthController::class, 'me']); // Para verificar usuario al recargar Vue
-
+        Route::get('/me', [AuthController::class, 'me']); 
+        
+        // --- Dashboard Administrativo ---
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        
         // Actualización de perfil
         Route::put('/profile/update', [UserController::class, 'updateProfile']);
 
