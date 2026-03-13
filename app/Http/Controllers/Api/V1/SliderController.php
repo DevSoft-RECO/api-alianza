@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File; // Necesario para manejar archivos sin Storage
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
 
 class SliderController extends Controller
 {
@@ -15,22 +16,24 @@ class SliderController extends Controller
      */
     public function index()
     {
-        $settings = DB::table('slider_settings')->orderBy('id', 'asc')->get();
-        $images = DB::table('slider_images')->orderBy('created_at', 'desc')->get();
+        return Cache::rememberForever('public_slider', function () {
+            $settings = DB::table('slider_settings')->orderBy('id', 'asc')->get();
+            $images = DB::table('slider_images')->orderBy('created_at', 'desc')->get();
 
-        $mappedImages = $images->map(function ($img) {
+            $mappedImages = $images->map(function ($img) {
+                return [
+                    'id' => $img->id,
+                    // Al estar en public/, asset() genera la URL directa sin storage link
+                    'url' => asset($img->image_path), 
+                    'category' => $img->category,
+                ];
+            });
+
             return [
-                'id' => $img->id,
-                // Al estar en public/, asset() genera la URL directa sin storage link
-                'url' => asset($img->image_path), 
-                'category' => $img->category,
+                'settings' => $settings,
+                'images' => $mappedImages
             ];
         });
-
-        return response()->json([
-            'settings' => $settings,
-            'images' => $mappedImages
-        ]);
     }
 
     /**
@@ -53,6 +56,8 @@ class SliderController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        Cache::forget('public_slider');
 
         return response()->json(['message' => 'Mensaje creado.', 'data' => ['id' => $id, ...$request->all()]]);
     }
@@ -77,6 +82,8 @@ class SliderController extends Controller
             'updated_at' => now(),
         ]);
 
+        Cache::forget('public_slider');
+
         return response()->json(['message' => 'Mensaje actualizado.']);
     }
 
@@ -88,6 +95,7 @@ class SliderController extends Controller
         // Evitar dejar la tabla vacía si lo deseas, o permitirlo.
         // Aquí permitimos borrar cualquiera.
         DB::table('slider_settings')->where('id', $id)->delete();
+        Cache::forget('public_slider');
         return response()->json(['message' => 'Mensaje eliminado.']);
     }
 
@@ -132,13 +140,17 @@ class SliderController extends Controller
                 'updated_at' => now(),
             ]);
 
+            $item = [
+                'id' => $id,
+                'url' => asset($dbPath),
+                'category' => $request->category
+            ];
+
+            Cache::forget('public_slider');
+
             return response()->json([
                 'message' => 'Imagen subida correctamente.',
-                'image' => [
-                    'id' => $id,
-                    'url' => asset($dbPath),
-                    'category' => $request->category
-                ]
+                'image' => $item
             ], 201);
         }
 
@@ -166,6 +178,8 @@ class SliderController extends Controller
 
         // Eliminar registro
         DB::table('slider_images')->where('id', $id)->delete();
+
+        Cache::forget('public_slider');
 
         return response()->json(['message' => 'Imagen eliminada correctamente.']);
     }

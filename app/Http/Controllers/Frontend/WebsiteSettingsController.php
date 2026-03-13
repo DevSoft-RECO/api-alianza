@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class WebsiteSettingsController extends Controller
 {
@@ -14,8 +15,9 @@ class WebsiteSettingsController extends Controller
     public function index()
     {
         // Retornar como { 'clave': 'valor', ... } para fácil uso en frontend
-        $settings = DB::table('configuraciones_sitio')->pluck('valor', 'clave');
-        return response()->json($settings);
+        return Cache::rememberForever('public_settings', function () {
+            return DB::table('configuraciones_sitio')->pluck('valor', 'clave');
+        });
     }
 
     /**
@@ -38,6 +40,8 @@ class WebsiteSettingsController extends Controller
                 ]
             );
         }
+
+        Cache::forget('public_settings');
 
         return response()->json([
             'message' => 'Configuraciones actualizadas correctamente',

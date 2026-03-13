@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\GaleriaImagen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 
 class GaleriaController extends Controller
 {
     public function index()
     {
-        return GaleriaImagen::orderBy('orden')->get();
+        return Cache::rememberForever('public_gallery', function () {
+            return GaleriaImagen::orderBy('orden')->get();
+        });
     }
 
     public function store(Request $request)
@@ -41,6 +44,8 @@ class GaleriaController extends Controller
 
         $item->save();
 
+        Cache::forget('public_gallery');
+
         return response()->json($item, 201);
     }
 
@@ -56,6 +61,8 @@ class GaleriaController extends Controller
         $item->orden = $request->orden ?? $item->orden;
         $item->save();
 
+        Cache::forget('public_gallery');
+
         return response()->json($item);
     }
 
@@ -69,6 +76,8 @@ class GaleriaController extends Controller
         }
 
         $item->delete();
+
+        Cache::forget('public_gallery');
 
         return response()->json(['message' => 'Imagen eliminada correctamente']);
     }
