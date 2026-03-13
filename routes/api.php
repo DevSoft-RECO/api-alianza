@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\FinanzasController;
 use App\Http\Controllers\Api\CajaController;
 use App\Http\Controllers\Frontend\WebsiteSettingsController;
 use App\Http\Controllers\Frontend\GaleriaController;
+use App\Http\Controllers\Frontend\PublicDataController;
 
 
 /*
@@ -35,6 +36,7 @@ Route::prefix('alianza')->group(function () {
     Route::get('/nosotros', [\App\Http\Controllers\Frontend\NosotrosController::class, 'indexPublic']);
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index']);
     Route::get('/galeria', [GaleriaController::class, 'index']);
+    Route::get('/public/init', [PublicDataController::class, 'init']);
 
     // --- Rutas Protegidas (Requieren Token Bearer) ---
     Route::middleware('auth:sanctum')->group(function () {
