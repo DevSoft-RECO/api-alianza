@@ -109,7 +109,53 @@ class FinanzasController extends Controller
         if ($request->filled('grado_id')) {
             $query->where('grado_id', $request->input('grado_id'));
         }
-        return response()->json($query->get());
+        $asignaciones = $query->get()->map(function($a) {
+            // Contar cuántos cargos pendientes existen
+            $a->pending_charges_count = \App\Models\Cargo::where('concepto_id', $a->conceptoColegio->concepto_id)
+                ->where('estado', 'pendiente')
+                ->whereHas('inscripcion', function($q) use ($a) {
+                    $q->where('grado_id', $a->grado_id);
+                })
+                ->count();
+
+            // Contar cuántos cargos PAGADOS existen (historial)
+            $a->paid_charges_count = \App\Models\Cargo::where('concepto_id', $a->conceptoColegio->concepto_id)
+                ->where('estado', 'pagado')
+                ->whereHas('inscripcion', function($q) use ($a) {
+                    $q->where('grado_id', $a->grado_id);
+                })
+                ->count();
+            return $a;
+        });
+
+        // Si se pide un grado específico, buscar si hay cobros que NO tengan asignación
+        $huerfanos = [];
+        if ($request->filled('grado_id')) {
+            $gradoId = $request->input('grado_id');
+            $conceptosAsignadosIds = $asignaciones->pluck('conceptoColegio.concepto_id')->toArray();
+
+            $huerfanos = \App\Models\Cargo::where('estado', 'pendiente')
+                ->whereNotIn('concepto_id', $conceptosAsignadosIds)
+                ->whereHas('inscripcion', function($q) use ($gradoId) {
+                    $q->where('grado_id', $gradoId);
+                })
+                ->with('concepto')
+                ->select('concepto_id')
+                ->groupBy('concepto_id')
+                ->get()
+                ->map(function($c) {
+                    return [
+                        'id' => $c->concepto_id,
+                        'nombre' => $c->concepto->nombre,
+                        'tipo' => $c->concepto->tipo
+                    ];
+                });
+        }
+
+        return response()->json([
+            'asignaciones' => $asignaciones,
+            'huerfanos' => $huerfanos
+        ]);
     }
 
     public function storeAsignacion(Request $request)
