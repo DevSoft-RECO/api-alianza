@@ -13,7 +13,7 @@ class FinanzasController extends Controller
     // --- 1. Conceptos (Abstractos) ---
     public function indexConceptos()
     {
-        return response()->json(Concepto::all());
+        return response()->json(Concepto::withCount('precios')->get());
     }
 
     public function storeConcepto(Request $request)
@@ -64,7 +64,7 @@ class FinanzasController extends Controller
     // --- 2. Conceptos por Colegio (Precios) ---
     public function indexPrecios(Request $request)
     {
-        $query = ConceptoColegio::with(['concepto', 'colegio']);
+        $query = ConceptoColegio::with(['concepto', 'colegio'])->withCount('asignaciones');
         if ($request->filled('colegio_id')) {
             $query->where('colegio_id', $request->input('colegio_id'));
         }
@@ -100,6 +100,16 @@ class FinanzasController extends Controller
 
         $precio->update($validated);
         return response()->json($precio);
+    }
+
+    public function destroyPrecio($id)
+    {
+        $precio = ConceptoColegio::findOrFail($id);
+        if ($precio->asignaciones()->count() > 0) {
+            return response()->json(['message' => 'No se puede eliminar porque este precio está asignado a uno o más grados.'], 400);
+        }
+        $precio->delete();
+        return response()->json(['message' => 'Precio eliminado']);
     }
 
     // --- 3. Asignación a Grados (Plantilla) ---

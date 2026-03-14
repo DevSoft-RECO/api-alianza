@@ -15,4 +15,8 @@ class ConceptoColegio extends Model {
     public function colegio() {
         return $this->belongsTo(Colegio::class);
     }
+
+    public function asignaciones() {
+        return $this->hasMany(GradoConcepto::class);
+    }
 }

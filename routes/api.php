@@ -116,6 +116,7 @@ Route::prefix('alianza')->group(function () {
             Route::get('precios', [FinanzasController::class, 'indexPrecios']); // ?colegio_id=1
             Route::post('precios', [FinanzasController::class, 'storePrecio']);
             Route::put('precios/{id}', [FinanzasController::class, 'updatePrecio']);
+            Route::delete('precios/{id}', [FinanzasController::class, 'destroyPrecio']);
 
             Route::get('asignaciones', [FinanzasController::class, 'indexAsignaciones']); // ?grado_id=1
             Route::post('asignaciones', [FinanzasController::class, 'storeAsignacion']);
