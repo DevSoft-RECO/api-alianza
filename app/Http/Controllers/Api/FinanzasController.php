@@ -162,6 +162,7 @@ class FinanzasController extends Controller
         $validated = $request->validate([
             'colegio_id' => 'required|exists:colegios,id',
             'concepto_id' => 'required|exists:conceptos,id',
+            'grado_id' => 'nullable|exists:grados,id', // Opcional para granularidad
             'mes' => 'nullable|integer|min:1|max:12',
             'anio' => 'required|integer',
             'nuevo_precio' => 'required|numeric|min:0'
@@ -172,6 +173,9 @@ class FinanzasController extends Controller
             ->where('estado', 'pendiente')
             ->whereHas('inscripcion', function($q) use ($validated) {
                 $q->where('colegio_id', $validated['colegio_id']);
+                if ($validated['grado_id']) {
+                    $q->where('grado_id', $validated['grado_id']);
+                }
             });
 
         if ($request->filled('mes')) {
@@ -185,6 +189,36 @@ class FinanzasController extends Controller
         return response()->json([
             'message' => "Se han actualizado {$updatedCount} cargos pendientes.",
             'updated_count' => $updatedCount
+        ]);
+    }
+
+    public function eliminarCargosMasivo(Request $request)
+    {
+        $validated = $request->validate([
+            'grado_id' => 'required|exists:grados,id',
+            'concepto_id' => 'required|exists:conceptos,id',
+            'mes' => 'nullable|integer|min:1|max:12',
+            'anio' => 'required|integer'
+        ]);
+
+        $query = \App\Models\Cargo::where('concepto_id', $validated['concepto_id'])
+            ->where('anio', $validated['anio'])
+            ->where('estado', 'pendiente')
+            ->whereHas('inscripcion', function($q) use ($validated) {
+                $q->where('grado_id', $validated['grado_id']);
+            });
+
+        if ($request->filled('mes')) {
+            $query->where('mes', $validated['mes']);
+        } else {
+            $query->whereNull('mes');
+        }
+
+        $deletedCount = $query->delete();
+
+        return response()->json([
+            'message' => "Se han eliminado {$deletedCount} cargos pendientes correctamente.",
+            'deleted_count' => $deletedCount
         ]);
     }
 }

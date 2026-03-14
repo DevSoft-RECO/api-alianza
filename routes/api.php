@@ -122,6 +122,7 @@ Route::prefix('alianza')->group(function () {
             Route::delete('asignaciones/{id}', [FinanzasController::class, 'destroyAsignacion']);
 
             Route::post('precios/ajuste-masivo', [FinanzasController::class, 'ajusteMasivo']);
+            Route::delete('cargos/eliminar-masivo', [FinanzasController::class, 'eliminarCargosMasivo']);
         });
 
         Route::get('/user', [AuthController::class, 'me']); // Alias for compatibility
