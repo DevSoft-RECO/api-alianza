@@ -25,6 +25,10 @@ class CajaController extends Controller
             });
         }
 
+        if ($request->filled('estudiante_id')) {
+            $query->where('estudiante_id', $request->input('estudiante_id'));
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('fecha_pago', '>=', $request->input('date_from'));
         }
