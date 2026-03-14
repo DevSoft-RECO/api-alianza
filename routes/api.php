@@ -135,6 +135,7 @@ Route::prefix('alianza')->group(function () {
             Route::get('pagos', [CajaController::class, 'index']); // Historial
             Route::get('pagos/{id}', [CajaController::class, 'show']); // <--- Detalle de Pago (Recibo)
             Route::get('estado-cuenta/{estudiante_id}', [CajaController::class, 'estadoCuenta']);
+            Route::get('reporte-deudores', [CajaController::class, 'getReporteDeudores']);
             Route::post('pagar', [CajaController::class, 'procesarPago']);
             Route::patch('pagos/{id}/fecha', [CajaController::class, 'updateFecha']);
         });

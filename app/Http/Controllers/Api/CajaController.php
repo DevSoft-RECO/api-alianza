@@ -131,6 +131,69 @@ class CajaController extends Controller
         });
     }
 
+    public function getReporteDeudores(Request $request)
+    {
+        $query = Inscripcion::with(['estudiante', 'grado.nivel', 'colegio'])
+            ->whereHas('ciclo', function($q) { $q->where('activo', true); })
+            ->whereHas('cargos', function($q) {
+                $q->where('estado', 'pendiente')
+                  ->whereDate('fecha_limite_pago', '<=', now());
+            });
+
+        if ($request->filled('colegio_id')) {
+            $query->where('colegio_id', $request->input('colegio_id'));
+        }
+
+        if ($request->filled('nivel_id')) {
+            $query->whereHas('grado', function($q) use ($request) {
+                $q->where('nivel_id', $request->input('nivel_id'));
+            });
+        }
+
+        if ($request->filled('grado_id')) {
+            $query->where('grado_id', $request->input('grado_id'));
+        }
+
+        $paginator = $query->paginate(10);
+
+        $paginator->getCollection()->transform(function($ins) {
+            $cargosPendientes = $ins->cargos()
+                ->where('estado', 'pendiente')
+                ->whereDate('fecha_limite_pago', '<=', now())
+                ->get();
+
+            $totalDeuda = $cargosPendientes->sum(function($cargo) {
+                return $cargo->total_pagar;
+            });
+
+            return [
+                'estudiante_id' => $ins->estudiante_id,
+                'codigo_estudiante' => $ins->estudiante->codigo_estudiante,
+                'nombres' => $ins->estudiante->nombres,
+                'apellidos' => $ins->estudiante->apellidos,
+                'grado' => $ins->grado->nombre,
+                'nivel' => $ins->grado->nivel->nombre ?? 'Sin Nivel',
+                'colegio' => $ins->colegio->nombre,
+                'cantidad_cargos' => $cargosPendientes->count(),
+                'total_deuda' => $totalDeuda,
+                'detalles' => $cargosPendientes->map(function($c) {
+                    return [
+                        'id' => $c->id,
+                        'concepto' => $c->nombre_concepto,
+                        'mes' => $c->mes,
+                        'anio' => $c->anio,
+                        'monto_base' => $c->monto_base,
+                        'mora' => $c->mora_actual,
+                        'total' => $c->total_pagar,
+                        'fecha_limite' => $c->fecha_limite_pago
+                    ];
+                })
+            ];
+        });
+
+        return response()->json($paginator);
+    }
+
     public function updateFecha(Request $request, $id)
     {
         $request->validate([
