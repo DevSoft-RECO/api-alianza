@@ -153,13 +153,33 @@ class FinanzasController extends Controller
     public function destroyAsignacion($id)
     {
         $asignacion = GradoConcepto::findOrFail($id);
-        // Validar si ya hay cobros pagados ligados a esto?
-        // Por simplificación V3, permitimos borrar la configuración.
-        // Los cargos generados (históricos) NO se borran en cascada automáticamente si no se desea,
-        // pero la FK dice 'cascade' en grado_concepto -> cargos? No, grado_concepto es una plantilla.
-        // Cargos tiene FK a inscripciones y conceptos, NO a grado_concepto directamente.
-        // Entonces es seguro borrar la "plantilla" sin afectar lo cobrado.
         $asignacion->delete();
         return response()->json(['message' => 'Asignación eliminada correctamente']);
+    }
+
+    public function ajusteMasivo(Request $request)
+    {
+        $validated = $request->validate([
+            'colegio_id' => 'required|exists:colegios,id',
+            'concepto_id' => 'required|exists:conceptos,id',
+            'mes' => 'required|integer|min:1|max:12',
+            'anio' => 'required|integer',
+            'nuevo_precio' => 'required|numeric|min:0'
+        ]);
+
+        // Ejecutar el update masivo solo a cargos PENDIENTES
+        $updatedCount = \App\Models\Cargo::where('concepto_id', $validated['concepto_id'])
+            ->where('mes', $validated['mes'])
+            ->where('anio', $validated['anio'])
+            ->where('estado', 'pendiente')
+            ->whereHas('inscripcion', function($q) use ($validated) {
+                $q->where('colegio_id', $validated['colegio_id']);
+            })
+            ->update(['monto_base' => $validated['nuevo_precio']]);
+
+        return response()->json([
+            'message' => "Se han actualizado {$updatedCount} cargos pendientes.",
+            'updated_count' => $updatedCount
+        ]);
     }
 }
