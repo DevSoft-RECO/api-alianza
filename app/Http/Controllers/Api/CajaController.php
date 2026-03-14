@@ -130,4 +130,20 @@ class CajaController extends Controller
             ]);
         });
     }
+
+    public function updateFecha(Request $request, $id)
+    {
+        $request->validate([
+            'fecha_pago' => 'required|date'
+        ]);
+
+        $pago = Pago::findOrFail($id);
+        $pago->fecha_pago = $request->input('fecha_pago');
+        $pago->save();
+
+        return response()->json([
+            'message' => 'Fecha de pago actualizada correctamente',
+            'pago' => $pago
+        ]);
+    }
 }
