@@ -162,20 +162,25 @@ class FinanzasController extends Controller
         $validated = $request->validate([
             'colegio_id' => 'required|exists:colegios,id',
             'concepto_id' => 'required|exists:conceptos,id',
-            'mes' => 'required|integer|min:1|max:12',
+            'mes' => 'nullable|integer|min:1|max:12',
             'anio' => 'required|integer',
             'nuevo_precio' => 'required|numeric|min:0'
         ]);
 
-        // Ejecutar el update masivo solo a cargos PENDIENTES
-        $updatedCount = \App\Models\Cargo::where('concepto_id', $validated['concepto_id'])
-            ->where('mes', $validated['mes'])
+        $query = \App\Models\Cargo::where('concepto_id', $validated['concepto_id'])
             ->where('anio', $validated['anio'])
             ->where('estado', 'pendiente')
             ->whereHas('inscripcion', function($q) use ($validated) {
                 $q->where('colegio_id', $validated['colegio_id']);
-            })
-            ->update(['monto_base' => $validated['nuevo_precio']]);
+            });
+
+        if ($request->filled('mes')) {
+            $query->where('mes', $validated['mes']);
+        } else {
+            $query->whereNull('mes');
+        }
+
+        $updatedCount = $query->update(['monto_base' => $validated['nuevo_precio']]);
 
         return response()->json([
             'message' => "Se han actualizado {$updatedCount} cargos pendientes.",
