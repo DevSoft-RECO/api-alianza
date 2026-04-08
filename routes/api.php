@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\UserController as GestionUsuariosController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Frontend\CatalogoController;
 use App\Http\Controllers\Modulo1\ColegioController;
@@ -128,16 +128,23 @@ Route::prefix('alianza')->group(function () {
 
         Route::get('/user', [AuthController::class, 'me']); // Alias for compatibility
 
-        // ... existing routes ...
-
         // 2. Caja y Pagos (CajaController)
         Route::prefix('caja')->group(function() {
-            Route::get('pagos', [CajaController::class, 'index']); // Historial
-            Route::get('pagos/{id}', [CajaController::class, 'show']); // <--- Detalle de Pago (Recibo)
+            Route::get('pagos', [CajaController::class, 'index']);
+            Route::get('pagos/{id}', [CajaController::class, 'show']);
             Route::get('estado-cuenta/{estudiante_id}', [CajaController::class, 'estadoCuenta']);
             Route::get('reporte-deudores', [CajaController::class, 'getReporteDeudores']);
             Route::post('pagar', [CajaController::class, 'procesarPago']);
             Route::patch('pagos/{id}/fecha', [CajaController::class, 'updateFecha']);
+        });
+
+        // --- Gestión de Usuarios (Super Admin) ---
+        Route::prefix('admin/usuarios')->group(function () {
+            Route::get('/',          [GestionUsuariosController::class, 'index']);
+            Route::post('/',         [GestionUsuariosController::class, 'store']);
+            Route::put('/{id}',      [GestionUsuariosController::class, 'update']);
+            Route::delete('/{id}',   [GestionUsuariosController::class, 'destroy']);
+            Route::put('/{id}/permisos', [GestionUsuariosController::class, 'togglePermiso']);
         });
     });
 
