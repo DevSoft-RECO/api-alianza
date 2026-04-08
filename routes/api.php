@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserController as GestionUsuariosController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Frontend\CatalogoController;
@@ -49,7 +50,7 @@ Route::prefix('alianza')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         
         // Actualización de perfil
-        Route::put('/profile/update', [UserController::class, 'updateProfile']);
+        Route::post('/profile/update', [UserController::class, 'updateProfile']); // Usamos POST porque enviamos archivos y spoofing de PUT
 
                 // Actualizar textos generales
         Route::post('/slider/settings', [SliderController::class, 'storeSetting']);

@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class UserController extends Controller
 {
@@ -122,6 +124,59 @@ class UserController extends Controller
         return response()->json([
             'message'         => $tiene ? 'Permiso otorgado.' : 'Permiso revocado.',
             'ver_dashboard'   => $tiene,
+        ]);
+    }
+
+    /**
+     * POST /profile/update (Spoofed as PUT)
+     * Actualiza el perfil del usuario autenticado.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => "required|email|unique:users,email,{$user->id}",
+            'password' => ['nullable', 'confirmed', Password::min(6)],
+            'photo'    => 'nullable|image|max:2048', // 2MB max
+        ]);
+
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+
+        if (!empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
+        }
+
+        // Manejo de la foto de perfil
+        if ($request->hasFile('photo')) {
+            // Eliminar foto anterior si existe
+            if ($user->profile_photo_path) {
+                $oldPath = public_path('uploads/' . $user->profile_photo_path);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+            }
+
+            $file = $request->file('photo');
+            $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            
+            // Asegurar que el directorio existe
+            $path = public_path('uploads');
+            if (!File::isDirectory($path)) {
+                File::makeDirectory($path, 0755, true);
+            }
+
+            $file->move($path, $filename);
+            $user->profile_photo_path = $filename;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Perfil actualizado correctamente.',
+            'user'    => $this->formatUser($user->load('roles', 'permissions')),
         ]);
     }
 

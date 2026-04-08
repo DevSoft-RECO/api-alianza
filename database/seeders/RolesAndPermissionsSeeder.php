@@ -21,7 +21,6 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'Direccion', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'Secretaria', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'Usuario', 'guard_name' => 'web']);
 
         // El "Super Admin" no necesita permisos explícitos gracias al Gate::before configurado en AppServiceProvider
 
