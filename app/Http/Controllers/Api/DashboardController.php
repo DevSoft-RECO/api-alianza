@@ -105,6 +105,8 @@ class DashboardController extends Controller
                 'nombre_mes_actual' => ucfirst($nombreMesActual),
                 'monto_pendiente' => (float)$montoPendiente,
                 'ciclo_anio' => $cicloActivo->anio ?? 'N/A',
+                'total_estudiantes' => $totalEstudiantes,
+                'inscripciones_activas' => $inscripcionesActivas,
             ],
             'stats' => [
                 'por_colegio' => $inscripcionesPorColegio,
