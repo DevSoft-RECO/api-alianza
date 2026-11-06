@@ -10,7 +10,7 @@ class CicloController extends Controller
 {
     public function index()
     {
-        return response()->json(Ciclo::all());
+        return response()->json(Ciclo::orderBy('anio', 'desc')->get());
     }
 
     public function store(Request $request)

@@ -44,7 +44,7 @@ public function index(Request $request)
         $query->where('estado', $request->estado);
     }
 
-    return $query->paginate(10);
+    return $query->latest('id')->paginate(10);
 }
 
 
