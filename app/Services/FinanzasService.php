@@ -72,9 +72,14 @@ class FinanzasService
      */
     public function generarCargosPorInscripcion(Inscripcion $inscripcion)
     {
-        // 1. Buscar las asignaciones (templates) del grado
+        $inscripcion->loadMissing('ciclo');
+
+        // 1. Buscar las asignaciones (templates) del grado específicas para el ciclo de la inscripción
         $asignaciones = \App\Models\GradoConcepto::with(['conceptoColegio.concepto'])
             ->where('grado_id', $inscripcion->grado_id)
+            ->whereHas('conceptoColegio', function($q) use ($inscripcion) {
+                $q->where('ciclo_id', $inscripcion->ciclo_id);
+            })
             ->get();
 
         foreach ($asignaciones as $asignacion) {

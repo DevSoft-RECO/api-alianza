@@ -64,9 +64,12 @@ class FinanzasController extends Controller
     // --- 2. Conceptos por Colegio (Precios) ---
     public function indexPrecios(Request $request)
     {
-        $query = ConceptoColegio::with(['concepto', 'colegio'])->withCount('asignaciones');
+        $query = ConceptoColegio::with(['concepto', 'colegio', 'ciclo'])->withCount('asignaciones');
         if ($request->filled('colegio_id')) {
             $query->where('colegio_id', $request->input('colegio_id'));
+        }
+        if ($request->filled('ciclo_id')) {
+            $query->where('ciclo_id', $request->input('ciclo_id'));
         }
         return response()->json($query->get());
     }
@@ -74,6 +77,7 @@ class FinanzasController extends Controller
     public function storePrecio(Request $request)
     {
         $validated = $request->validate([
+            'ciclo_id' => 'required|exists:ciclos,id',
             'concepto_id' => 'required|exists:conceptos,id',
             'colegio_id' => 'required|exists:colegios,id',
             'precio' => 'required|numeric',
@@ -115,9 +119,14 @@ class FinanzasController extends Controller
     // --- 3. Asignación a Grados (Plantilla) ---
     public function indexAsignaciones(Request $request)
     {
-        $query = GradoConcepto::with(['conceptoColegio.concepto', 'conceptoColegio.colegio']);
+        $query = GradoConcepto::with(['conceptoColegio.concepto', 'conceptoColegio.colegio', 'conceptoColegio.ciclo']);
         if ($request->filled('grado_id')) {
             $query->where('grado_id', $request->input('grado_id'));
+        }
+        if ($request->filled('ciclo_id')) {
+            $query->whereHas('conceptoColegio', function($q) use ($request) {
+                $q->where('ciclo_id', $request->input('ciclo_id'));
+            });
         }
         $asignaciones = $query->get()->map(function($a) {
             // Contar cuántos cargos pendientes existen
@@ -179,21 +188,18 @@ class FinanzasController extends Controller
         $asignacion = GradoConcepto::create($validated);
 
         // --- LÓGICA RETROACTIVA ---
-        // Al asignar un nuevo cobro al grado, debemos cargárselo a los alumnos YA inscritos.
-        // Buscamos inscripciones activas (estado? ciclo activo?)
-        // Asumiremos ciclo activo, pero por seguridad iteramos las inscripciones de ese grado.
+        // Al asignar un nuevo cobro al grado, debemos cargárselo a los alumnos YA inscritos de ESE ciclo
+        $config = \App\Models\ConceptoColegio::with('concepto')->find($validated['concepto_colegio_id']);
 
         $inscripciones = \App\Models\Inscripcion::where('grado_id', $validated['grado_id'])
-            ->with('ciclo') // Necesario para saber el año
-            ->whereHas('ciclo', function($q) { $q->where('activo', true); }) // Solo ciclo actual
+            ->with('ciclo')
+            ->where('ciclo_id', $config->ciclo_id)
             ->get();
 
-        $config = \App\Models\ConceptoColegio::with('concepto')->find($validated['concepto_colegio_id']);
         $concepto = $config->concepto;
         $servicio = new \App\Services\FinanzasService();
 
         foreach ($inscripciones as $inscripcion) {
-            // Reutilizamos la lógica del servicio
             if ($concepto->tipo === 'mensual' && $config->mes_inicio && $config->mes_fin) {
                 for ($mes = $config->mes_inicio; $mes <= $config->mes_fin; $mes++) {
                     $servicio->generarCargo($inscripcion, $concepto, $config, $mes);
@@ -211,6 +217,41 @@ class FinanzasController extends Controller
         $asignacion = GradoConcepto::findOrFail($id);
         $asignacion->delete();
         return response()->json(['message' => 'Asignación eliminada correctamente']);
+    }
+
+    public function reaplicarAsignacion($id)
+    {
+        $asignacion = GradoConcepto::findOrFail($id);
+        $config = \App\Models\ConceptoColegio::with('concepto')->findOrFail($asignacion->concepto_colegio_id);
+
+        $inscripciones = \App\Models\Inscripcion::where('grado_id', $asignacion->grado_id)
+            ->where('ciclo_id', $config->ciclo_id)
+            ->get();
+
+        $concepto = $config->concepto;
+        $servicio = new \App\Services\FinanzasService();
+        $creados = 0;
+
+        foreach ($inscripciones as $inscripcion) {
+            if ($concepto->tipo === 'mensual' && $config->mes_inicio && $config->mes_fin) {
+                for ($mes = $config->mes_inicio; $mes <= $config->mes_fin; $mes++) {
+                    $cargo = $servicio->generarCargo($inscripcion, $concepto, $config, $mes);
+                    if ($cargo) {
+                        $creados++;
+                    }
+                }
+            } else {
+                $cargo = $servicio->generarCargo($inscripcion, $concepto, $config, null);
+                if ($cargo) {
+                    $creados++;
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => "Se han generado {$creados} nuevos cargos a los alumnos inscritos.",
+            'cargos_creados' => $creados
+        ]);
     }
 
     public function ajusteMasivo(Request $request)
@@ -276,5 +317,69 @@ class FinanzasController extends Controller
             'message' => "Se han eliminado {$deletedCount} cargos pendientes correctamente.",
             'deleted_count' => $deletedCount
         ]);
+    }
+
+    public function clonarCiclo(Request $request)
+    {
+        $validated = $request->validate([
+            'desde_ciclo_id' => 'required|exists:ciclos,id',
+            'hacia_ciclo_id' => 'required|exists:ciclos,id|different:desde_ciclo_id'
+        ]);
+
+        $desdeId = $validated['desde_ciclo_id'];
+        $haciaId = $validated['hacia_ciclo_id'];
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($desdeId, $haciaId) {
+            $conteoExistentes = ConceptoColegio::where('ciclo_id', $haciaId)->count();
+            if ($conteoExistentes > 0) {
+                return response()->json([
+                    'message' => 'El ciclo destino ya cuenta con tarifas configuradas. Para evitar duplicados, elimínelas primero si desea volver a clonar.'
+                ], 422);
+            }
+
+            $preciosOrigen = ConceptoColegio::where('ciclo_id', $desdeId)->get();
+
+            if ($preciosOrigen->isEmpty()) {
+                return response()->json([
+                    'message' => 'El ciclo origen no tiene tarifas configuradas para copiar.'
+                ], 422);
+            }
+
+            $mapaIdsPrecios = [];
+            foreach ($preciosOrigen as $precio) {
+                $nuevoPrecio = ConceptoColegio::create([
+                    'ciclo_id' => $haciaId,
+                    'concepto_id' => $precio->concepto_id,
+                    'colegio_id' => $precio->colegio_id,
+                    'precio' => $precio->precio,
+                    'fecha_limite_absoluta' => $precio->fecha_limite_absoluta,
+                    'mes_inicio' => $precio->mes_inicio,
+                    'mes_fin' => $precio->mes_fin,
+                    'activo' => $precio->activo
+                ]);
+
+                $mapaIdsPrecios[$precio->id] = $nuevoPrecio->id;
+            }
+
+            $asignacionesOrigen = GradoConcepto::whereIn('concepto_colegio_id', array_keys($mapaIdsPrecios))->get();
+            $conteoAsignaciones = 0;
+
+            foreach ($asignacionesOrigen as $asig) {
+                if (isset($mapaIdsPrecios[$asig->concepto_colegio_id])) {
+                    GradoConcepto::create([
+                        'grado_id' => $asig->grado_id,
+                        'concepto_colegio_id' => $mapaIdsPrecios[$asig->concepto_colegio_id],
+                        'obligatorio' => $asig->obligatorio
+                    ]);
+                    $conteoAsignaciones++;
+                }
+            }
+
+            return response()->json([
+                'message' => "Configuración copiada exitosamente: {$preciosOrigen->count()} precios y {$conteoAsignaciones} asignaciones a grados.",
+                'precios_clonados' => $preciosOrigen->count(),
+                'asignaciones_clonadas' => $conteoAsignaciones
+            ]);
+        });
     }
 }

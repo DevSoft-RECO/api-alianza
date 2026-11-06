@@ -100,11 +100,7 @@ public function index(Request $request)
         ]);
 
         $inscripcion = Inscripcion::create($validated);
-
-        // --- Módulo Financiero V3: Generar Cargos Automáticamente ---
-        $finanzas = new \App\Services\FinanzasService();
-        $finanzas->generarCargosPorInscripcion($inscripcion);
-        // ------------------------------------------------------------
+        // Los cargos se generan automáticamente vía InscripcionObserver
 
         return response()->json($inscripcion, 201);
     }

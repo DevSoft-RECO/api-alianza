@@ -121,10 +121,12 @@ Route::prefix('alianza')->group(function () {
 
             Route::get('asignaciones', [FinanzasController::class, 'indexAsignaciones']); // ?grado_id=1
             Route::post('asignaciones', [FinanzasController::class, 'storeAsignacion']);
+            Route::post('asignaciones/{id}/reaplicar', [FinanzasController::class, 'reaplicarAsignacion']);
             Route::delete('asignaciones/{id}', [FinanzasController::class, 'destroyAsignacion']);
 
             Route::post('precios/ajuste-masivo', [FinanzasController::class, 'ajusteMasivo']);
             Route::delete('cargos/eliminar-masivo', [FinanzasController::class, 'eliminarCargosMasivo']);
+            Route::post('clonar-ciclo', [FinanzasController::class, 'clonarCiclo']);
         });
 
         Route::get('/user', [AuthController::class, 'me']); // Alias for compatibility
