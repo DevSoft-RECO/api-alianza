@@ -8,7 +8,11 @@ use App\Models\Grado;
 use App\Models\Nivel;
 use App\Models\Colegio;
 use App\Models\Ciclo;
+use App\Models\Cargo;
+use App\Models\Pago;
+use App\Models\PagoDetalle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InscripcionController extends Controller
 {
@@ -138,7 +142,7 @@ public function index(Request $request)
         return response()->json($inscripcion);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $inscripcion = Inscripcion::find($id);
 
@@ -146,8 +150,53 @@ public function index(Request $request)
             return response()->json(['message' => 'Inscripción no encontrada'], 404);
         }
 
-        $inscripcion->delete();
+        $cargoIds = Cargo::where('inscripcion_id', $inscripcion->id)->pluck('id');
+        $detalles = $cargoIds->isNotEmpty()
+            ? PagoDetalle::whereIn('cargo_id', $cargoIds)->get()
+            : collect();
 
-        return response()->json(['message' => 'Inscripción eliminada']);
+        if ($detalles->isNotEmpty() && !$request->boolean('force')) {
+            $pagosCount = $detalles->pluck('pago_id')->unique()->count();
+            $totalPagado = (float) $detalles->sum('monto_pagado');
+
+            return response()->json([
+                'message' => 'Esta inscripción tiene pagos registrados en caja.',
+                'requires_force' => true,
+                'pagos_count' => $pagosCount,
+                'total_pagado' => $totalPagado,
+            ], 409);
+        }
+
+        DB::transaction(function () use ($inscripcion, $cargoIds, $detalles) {
+            if ($detalles->isNotEmpty()) {
+                $pagoIds = $detalles->pluck('pago_id')->unique();
+
+                // 1. Eliminar los detalles de pago vinculados a los cargos de esta inscripción
+                PagoDetalle::whereIn('cargo_id', $cargoIds)->delete();
+
+                // 2. Eliminar recibos huérfanos o recalcular total si incluyen otros cargos
+                foreach ($pagoIds as $pagoId) {
+                    $pago = Pago::find($pagoId);
+                    if (!$pago) continue;
+
+                    $restantes = $pago->detalles()->count();
+                    if ($restantes === 0) {
+                        $pago->delete();
+                    } else {
+                        $nuevoTotal = $pago->detalles()->sum('monto_pagado');
+                        $pago->update(['total' => $nuevoTotal]);
+                    }
+                }
+            }
+
+            // 3. Eliminar inscripción (cascada sobre cargos)
+            $inscripcion->delete();
+        });
+
+        return response()->json([
+            'message' => $detalles->isNotEmpty()
+                ? 'Inscripción y pagos asociados eliminados correctamente.'
+                : 'Inscripción eliminada correctamente.'
+        ]);
     }
 }
